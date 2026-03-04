@@ -1,0 +1,361 @@
+/* ────────────────────────────────────────────────────────
+   Costerra ERP — Global Styles
+   Tailwind directives + design token overrides + base resets
+   ──────────────────────────────────────────────────────── */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Theme Palette: CSS Custom Properties ────────────── */
+/* Values are bare HSL channels (e.g. "220 20% 100%")     */
+/* without the hsl() wrapper, so Tailwind can inject its   */
+/* own alpha value for opacity modifier classes like /60.   */
+
+/* Light palette (default when .dark class is absent)      */
+:root {
+  /* Brand */
+  --color-brand-50: 220 60% 97%;
+  --color-brand-100: 220 55% 93%;
+  --color-brand-200: 220 50% 85%;
+  --color-brand-300: 220 50% 72%;
+  --color-brand-400: 222 48% 52%;
+  --color-brand-500: 224 50% 45%;
+  --color-brand-600: 226 55% 38%;
+  --color-brand-700: 228 55% 30%;
+  --color-brand-800: 228 50% 24%;
+  --color-brand-900: 230 48% 18%;
+  --color-brand-950: 232 50% 10%;
+
+  /* Surface — Light mode: bright backgrounds, dark text */
+  --color-surface-0: 220 20% 99%;
+  --color-surface-50: 220 18% 97%;
+  --color-surface-100: 220 14% 22%;
+  --color-surface-200: 220 14% 30%;
+  --color-surface-300: 220 12% 40%;
+  --color-surface-400: 220 10% 50%;
+  --color-surface-500: 220 8% 56%;
+  --color-surface-600: 220 8% 70%;
+  --color-surface-700: 220 12% 86%;
+  --color-surface-800: 220 16% 92%;
+  --color-surface-850: 220 18% 94%;
+  --color-surface-900: 220 20% 96%;
+  --color-surface-950: 220 22% 98%;
+
+  /* Semantic colors */
+  --color-success-50: 145 60% 96%;
+  --color-success-500: 145 55% 38%;
+  --color-success-600: 145 60% 30%;
+
+  --color-warning-50: 38 95% 96%;
+  --color-warning-500: 38 90% 46%;
+  --color-warning-600: 30 85% 38%;
+
+  --color-danger-50: 0 70% 96%;
+  --color-danger-500: 0 65% 48%;
+  --color-danger-600: 0 70% 40%;
+
+  /* Scrollbar */
+  --scrollbar-thumb: hsl(220, 12%, 78%);
+  --scrollbar-thumb-hover: hsl(220, 12%, 68%);
+
+  /* Skeleton shimmer */
+  --skeleton-from: hsl(220, 16%, 92%);
+  --skeleton-mid: hsl(220, 16%, 86%);
+}
+
+/* Dark palette */
+.dark {
+  /* Brand */
+  --color-brand-50: 220 60% 97%;
+  --color-brand-100: 220 55% 93%;
+  --color-brand-200: 220 50% 85%;
+  --color-brand-300: 220 50% 72%;
+  --color-brand-400: 222 48% 58%;
+  --color-brand-500: 224 50% 48%;
+  --color-brand-600: 226 55% 40%;
+  --color-brand-700: 228 55% 33%;
+  --color-brand-800: 228 50% 26%;
+  --color-brand-900: 230 48% 20%;
+  --color-brand-950: 232 50% 12%;
+
+  /* Surface — Dark mode: original values */
+  --color-surface-0: 220 20% 100%;
+  --color-surface-50: 220 20% 98%;
+  --color-surface-100: 220 18% 96%;
+  --color-surface-200: 220 16% 92%;
+  --color-surface-300: 220 14% 86%;
+  --color-surface-400: 220 12% 72%;
+  --color-surface-500: 220 10% 54%;
+  --color-surface-600: 220 12% 40%;
+  --color-surface-700: 222 16% 28%;
+  --color-surface-800: 224 20% 18%;
+  --color-surface-850: 225 22% 14%;
+  --color-surface-900: 226 24% 11%;
+  --color-surface-950: 228 28% 7%;
+
+  /* Semantic colors */
+  --color-success-50: 145 60% 96%;
+  --color-success-500: 145 55% 42%;
+  --color-success-600: 145 60% 34%;
+
+  --color-warning-50: 38 95% 96%;
+  --color-warning-500: 38 90% 50%;
+  --color-warning-600: 30 85% 42%;
+
+  --color-danger-50: 0 70% 96%;
+  --color-danger-500: 0 65% 52%;
+  --color-danger-600: 0 70% 44%;
+
+  /* Scrollbar */
+  --scrollbar-thumb: hsl(220, 12%, 28%);
+  --scrollbar-thumb-hover: hsl(220, 12%, 36%);
+
+  /* Skeleton shimmer */
+  --skeleton-from: hsl(224, 20%, 14%);
+  --skeleton-mid: hsl(224, 20%, 20%);
+}
+
+/* ─── Base Resets ──────────────────────────────────────── */
+@layer base {
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-surface-950 text-surface-100 font-sans;
+    overflow: hidden;
+    /* Electron app — controlled scroll regions */
+  }
+
+  /* Smooth theme transitions */
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.15s ease !important;
+    transition-delay: 0s !important;
+  }
+
+  /* Electron drag region for custom title bar */
+  .drag-region {
+    -webkit-app-region: drag;
+  }
+
+  .no-drag {
+    -webkit-app-region: no-drag;
+  }
+
+  /* Custom scrollbar styling — uses CSS vars for theming */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+}
+
+/* ─── Component Layer ─────────────────────────────────── */
+@layer components {
+
+  /* Glassmorphism card */
+  .glass-card {
+    @apply bg-surface-900/60 backdrop-blur-[12px] border border-surface-700/30 rounded-xl shadow-glass;
+  }
+
+  /* Glassmorphism sidebar */
+  .glass-sidebar {
+    @apply bg-surface-950/80 backdrop-blur-[16px] border-r border-surface-800/50;
+  }
+
+  /* Stat/metric card */
+  .stat-card {
+    @apply glass-card p-5 transition-all duration-200 hover:shadow-card-hover hover:border-surface-600/40;
+  }
+
+  /* Data table row hover */
+  .table-row-hover {
+    @apply transition-colors duration-150 hover:bg-surface-800/40;
+  }
+
+  /* Form input base */
+  .input-base {
+    @apply w-full rounded-lg border border-surface-700/50 bg-surface-800/60 px-3.5 py-2.5 text-sm text-surface-100 placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/60 transition-all duration-150;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-400 active:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-400/50 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Ghost button */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-surface-300 hover:bg-surface-800/60 hover:text-surface-100 active:bg-surface-700/50 focus:outline-none focus:ring-2 focus:ring-surface-600/50 transition-all duration-150;
+  }
+
+  /* Danger button */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-danger-600/20 px-4 py-2.5 text-sm font-medium text-danger-500 hover:bg-danger-600/30 active:bg-danger-600/40 border border-danger-600/30 focus:outline-none focus:ring-2 focus:ring-danger-500/40 transition-all duration-150;
+  }
+
+  /* Status badges */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-success-500/15 text-success-500 border border-success-500/20;
+  }
+
+  .badge-warning {
+    @apply badge bg-warning-500/15 text-warning-600 border border-warning-500/20;
+  }
+
+  .badge-danger {
+    @apply badge bg-danger-500/15 text-danger-500 border border-danger-500/20;
+  }
+
+  .badge-neutral {
+    @apply badge bg-surface-700/40 text-surface-300 border border-surface-600/30;
+  }
+
+  .badge-brand {
+    @apply badge bg-brand-500/15 text-brand-400 border border-brand-500/20;
+  }
+
+  /* Skeleton loader line — uses CSS vars for theming */
+  .skeleton {
+    @apply rounded-md bg-surface-800/60;
+    background: linear-gradient(90deg,
+        var(--skeleton-from) 0%,
+        var(--skeleton-mid) 50%,
+        var(--skeleton-from) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+}
+
+/* ─── Print Styles ────────────────────────────────────── */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+}
+
+/* ─── Keyframe Animations ────────────────────────────── */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* ─── Utility Layer ──────────────────────────────────── */
+@layer utilities {
+
+  /* Accessible focus ring — visible only with keyboard */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-950;
+  }
+
+  /* Page entry animation (complements Framer Motion) */
+  .page-enter {
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  /* Subtle pulse for loading indicators */
+  .animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
+
+  /* Interactive card hover with subtle lift */
+  .card-hover {
+    @apply transition-all duration-200;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-1px);
+    @apply shadow-card-hover border-surface-600/40;
+  }
+
+  /* Truncate text with ellipsis */
+  .text-truncate {
+    @apply truncate;
+  }
+
+  /* Hide scrollbar but keep scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Selection color */
+  ::selection {
+    @apply bg-brand-500/30 text-white;
+  }
+}

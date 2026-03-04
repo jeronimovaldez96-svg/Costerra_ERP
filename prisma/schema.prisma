@@ -1,0 +1,255 @@
+// ────────────────────────────────────────────────────────
+// Costerra ERP — Prisma Schema
+// Database: SQLite (single-file, ACID-compliant)
+// All financial/inventory mutations use $transaction
+// Historical tables are append-only (no updates/deletes)
+// ────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Product Information Management ────────────────────
+
+model Product {
+  id               Int       @id @default(autoincrement())
+  skuNumber        String    @unique
+  productGroup     String
+  productFamily    String
+  name             String
+  color            String
+  imagePath        String?
+  defaultUnitCost  Float
+  defaultUnitPrice Float
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  history          ProductHistory[]
+  purchaseOrderItems PurchaseOrderItem[]
+  inventoryBatches InventoryBatch[]
+  quoteLineItems   QuoteLineItem[]
+  saleLineItems    SaleLineItem[]
+
+  @@index([isActive])
+  @@index([productGroup])
+  @@index([productFamily])
+}
+
+/// Append-only audit log — tracks every field-level change on a Product
+model ProductHistory {
+  id         Int      @id @default(autoincrement())
+  productId  Int
+  fieldName  String
+  oldValue   String
+  newValue   String
+  changedAt  DateTime @default(now())
+
+  product    Product  @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+}
+
+// ─── Supplier & Purchase Orders ────────────────────────
+
+model Supplier {
+  id          Int      @id @default(autoincrement())
+  name        String
+  contactName String   @default("")
+  phone       String   @default("")
+  email       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  purchaseOrders PurchaseOrder[]
+}
+
+/// State machine: DRAFT → IN_TRANSIT → DELIVERED
+model PurchaseOrder {
+  id          Int      @id @default(autoincrement())
+  poNumber    String   @unique
+  supplierId  Int
+  description String   @default("")
+  status      String   @default("DRAFT")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  supplier    Supplier          @relation(fields: [supplierId], references: [id])
+  items       PurchaseOrderItem[]
+
+  @@index([supplierId])
+  @@index([status])
+}
+
+model PurchaseOrderItem {
+  id              Int      @id @default(autoincrement())
+  purchaseOrderId Int
+  productId       Int
+  quantity        Int
+  unitCost        Float
+
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  product         Product       @relation(fields: [productId], references: [id])
+  inventoryBatches InventoryBatch[]
+
+  @@index([purchaseOrderId])
+  @@index([productId])
+}
+
+// ─── Inventory (FIFO Double-Entry Ledger) ──────────────
+
+/// Each batch represents a single inventory receipt from a delivered PO item.
+/// FIFO deduction iterates batches oldest-first by receivedAt.
+model InventoryBatch {
+  id                  Int      @id @default(autoincrement())
+  productId           Int
+  purchaseOrderItemId Int
+  initialQty          Int
+  remainingQty        Int
+  reservedQty         Int      @default(0)
+  unitCost            Float
+  receivedAt          DateTime @default(now())
+
+  product             Product            @relation(fields: [productId], references: [id])
+  purchaseOrderItem   PurchaseOrderItem  @relation(fields: [purchaseOrderItemId], references: [id])
+
+  @@index([productId, receivedAt])
+  @@index([purchaseOrderItemId])
+}
+
+// ─── Client Relationship Management ────────────────────
+
+model Client {
+  id           Int      @id @default(autoincrement())
+  clientNumber String   @unique
+  name         String
+  surname      String
+  address      String   @default("")
+  city         String   @default("")
+  zipCode      String   @default("")
+  phone        String   @default("")
+  notes        String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  history      ClientHistory[]
+  salesLeads   SalesLead[]
+}
+
+/// Append-only audit log — tracks every field-level change on a Client
+model ClientHistory {
+  id         Int      @id @default(autoincrement())
+  clientId   Int
+  fieldName  String
+  oldValue   String
+  newValue   String
+  changedAt  DateTime @default(now())
+
+  client     Client   @relation(fields: [clientId], references: [id])
+
+  @@index([clientId])
+}
+
+// ─── Sales Pipeline (Lead → Quote → Sale) ──────────────
+
+/// Status: IN_PROGRESS | SOLD | NOT_SOLD
+model SalesLead {
+  id         Int      @id @default(autoincrement())
+  leadNumber String   @unique
+  clientId   Int
+  name       String
+  status     String   @default("IN_PROGRESS")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  client     Client   @relation(fields: [clientId], references: [id])
+  quotes     Quote[]
+
+  @@index([clientId])
+  @@index([status])
+}
+
+/// Status: DRAFT | SENT | SOLD | REJECTED
+model Quote {
+  id          Int      @id @default(autoincrement())
+  quoteNumber String   @unique
+  salesLeadId Int
+  status      String   @default("DRAFT")
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  salesLead   SalesLead      @relation(fields: [salesLeadId], references: [id])
+  lineItems   QuoteLineItem[]
+  sale        Sale?
+
+  @@index([salesLeadId])
+  @@index([status])
+}
+
+model QuoteLineItem {
+  id        Int   @id @default(autoincrement())
+  quoteId   Int
+  productId Int
+  quantity  Int
+  unitPrice Float
+  unitCost  Float
+  lineTotal Float
+
+  quote     Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@index([quoteId])
+  @@index([productId])
+}
+
+// ─── Sales Ledger ──────────────────────────────────────
+
+model Sale {
+  id           Int      @id @default(autoincrement())
+  saleNumber   String   @unique
+  quoteId      Int      @unique
+  totalRevenue Float
+  totalCost    Float
+  profitAmount Float
+  profitMargin Float
+  saleDate     DateTime @default(now())
+
+  quote        Quote          @relation(fields: [quoteId], references: [id])
+  lineItems    SaleLineItem[]
+
+  @@index([saleDate])
+}
+
+model SaleLineItem {
+  id              Int   @id @default(autoincrement())
+  saleId          Int
+  productId       Int
+  quantity        Int
+  unitPrice       Float
+  blendedUnitCost Float
+  lineRevenue     Float
+  lineCost        Float
+  lineProfit      Float
+
+  sale            Sale    @relation(fields: [saleId], references: [id])
+  product         Product @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+// ─── System Operations ─────────────────────────────────
+
+model BackupLog {
+  id        Int      @id @default(autoincrement())
+  filename  String
+  filePath  String
+  sizeBytes Int
+  createdAt DateTime @default(now())
+}
