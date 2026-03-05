@@ -181,6 +181,8 @@ model Quote {
   salesLeadId Int
   status      String   @default("DRAFT")
   notes       String   @default("")
+  taxRate     Float    @default(0)
+  taxAmount   Float    @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -215,6 +217,7 @@ model Sale {
   saleNumber   String   @unique
   quoteId      Int      @unique
   totalRevenue Float
+  taxAmount    Float    @default(0)
   totalCost    Float
   profitAmount Float
   profitMargin Float

@@ -29,6 +29,8 @@ interface Quote {
     quoteNumber: string
     status: string
     notes: string
+    taxRate: number
+    taxAmount: number
     salesLead: {
         id: number
         leadNumber: string
@@ -52,7 +54,8 @@ const STATUS_BADGES: Record<string, string> = {
     DRAFT: 'badge-neutral',
     SENT: 'badge-brand',
     SOLD: 'badge-success',
-    REJECTED: 'badge-danger'
+    REJECTED: 'badge-danger',
+    NOT_SOLD: 'badge-danger'
 }
 
 const columnHelper = createColumnHelper<Quote>()
@@ -272,9 +275,21 @@ export default function QuotesPage() {
                             </tbody>
                             <tfoot>
                                 <tr className="border-t border-surface-700/50">
-                                    <td colSpan={4} className="py-3 text-right font-medium text-surface-300">Total:</td>
-                                    <td className="py-3 text-right font-semibold text-surface-100">
+                                    <td colSpan={4} className="pt-4 pb-1 text-right font-medium text-surface-400">Subtotal:</td>
+                                    <td className="pt-4 pb-1 text-right text-surface-300">
                                         {formatCurrency(detailQuote.lineItems.reduce((sum, li) => sum + li.lineTotal, 0))}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colSpan={4} className="py-1 text-right font-medium text-surface-400">Tax ({detailQuote.taxRate}%):</td>
+                                    <td className="py-1 text-right text-surface-300">
+                                        {formatCurrency(detailQuote.taxAmount)}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colSpan={4} className="pt-1 pb-3 text-right font-bold text-surface-200">Quote Total:</td>
+                                    <td className="pt-1 pb-3 text-right font-bold text-surface-100 border-t border-surface-800/30">
+                                        {formatCurrency(detailQuote.lineItems.reduce((sum, li) => sum + li.lineTotal, 0) + detailQuote.taxAmount)}
                                     </td>
                                 </tr>
                             </tfoot>
@@ -314,6 +329,7 @@ function QuoteCreateForm({ onSuccess, onCancel }: { onSuccess: () => void; onCan
 
     const [salesLeadId, setSalesLeadId] = useState(0)
     const [notes, setNotes] = useState('')
+    const [taxRate, setTaxRate] = useState(0)
     const [lineItems, setLineItems] = useState<Array<{ productId: number; skuNumber: string; name: string; quantity: number; unitPrice: number; unitCost: number }>>([])
 
     // Temp line item fields
@@ -359,11 +375,12 @@ function QuoteCreateForm({ onSuccess, onCancel }: { onSuccess: () => void; onCan
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!salesLeadId) { addToast({ type: 'warning', title: 'Select a lead' }); return }
+        if (lineItems.length === 0) { addToast({ type: 'warning', title: 'Add at least one line item' }); return }
 
         setSaving(true)
         try {
             // Create quote
-            const quoteRes = await window.api.invoke(IPC_CHANNELS.QUOTE_CREATE, { salesLeadId, notes })
+            const quoteRes = await window.api.invoke(IPC_CHANNELS.QUOTE_CREATE, { salesLeadId, notes, taxRate })
             if (!quoteRes.success) { addToast({ type: 'error', title: 'Failed', message: quoteRes.error }); return }
 
             // Add line items
@@ -460,9 +477,35 @@ function QuoteCreateForm({ onSuccess, onCancel }: { onSuccess: () => void; onCan
                         </tbody>
                         <tfoot>
                             <tr className="border-t border-surface-700/50 bg-surface-800/20">
-                                <td colSpan={4} className="px-3 py-2.5 text-right font-medium text-surface-300">Quote Total:</td>
-                                <td className="px-3 py-2.5 text-right font-semibold text-surface-100">
+                                <td colSpan={4} className="px-3 pt-4 pb-1 text-right font-medium text-surface-400">Subtotal:</td>
+                                <td className="px-3 pt-4 pb-1 text-right text-surface-300">
                                     {formatCurrency(lineItems.reduce((sum, li) => sum + li.quantity * li.unitPrice, 0))}
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr className="bg-surface-800/20">
+                                <td colSpan={4} className="px-3 py-1 text-right font-medium text-surface-400">
+                                    <div className="flex items-center justify-end gap-2">
+                                        <label className="text-xs">Tax %</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={taxRate}
+                                            onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                                            className="input-base text-sm w-20 py-1"
+                                        />
+                                    </div>
+                                </td>
+                                <td className="px-3 py-1 text-right text-surface-300">
+                                    {formatCurrency(lineItems.reduce((sum, li) => sum + li.quantity * li.unitPrice, 0) * (taxRate / 100))}
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr className="bg-surface-800/20">
+                                <td colSpan={4} className="px-3 pt-1 pb-4 text-right font-bold text-surface-200">Quote Total:</td>
+                                <td className="px-3 pt-1 pb-4 text-right font-bold text-surface-100">
+                                    {formatCurrency(lineItems.reduce((sum, li) => sum + li.quantity * li.unitPrice, 0) * (1 + (taxRate / 100)))}
                                 </td>
                                 <td></td>
                             </tr>

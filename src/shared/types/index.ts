@@ -240,6 +240,8 @@ export interface QuoteData {
     salesLeadId: number
     status: QuoteStatus
     notes: string
+    taxRate: number
+    taxAmount: number
     createdAt: string
     updatedAt: string
     salesLead?: SalesLeadData
@@ -261,6 +263,7 @@ export interface QuoteLineItemData {
 export interface QuoteCreateInput {
     salesLeadId: number
     notes?: string
+    taxRate?: number
 }
 
 export interface QuoteLineItemInput {
@@ -278,6 +281,7 @@ export interface SaleData {
     saleNumber: string
     quoteId: number
     totalRevenue: number
+    taxAmount: number
     totalCost: number
     profitAmount: number
     profitMargin: number

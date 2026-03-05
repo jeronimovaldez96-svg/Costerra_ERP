@@ -22,7 +22,8 @@ export const PO_TRANSITIONS: Record<PoStatus, PoStatus[]> = {
 export const LEAD_STATUS = {
     IN_PROGRESS: 'IN_PROGRESS',
     SOLD: 'SOLD',
-    NOT_SOLD: 'NOT_SOLD'
+    NOT_SOLD: 'NOT_SOLD',
+    CLOSED: 'CLOSED'
 } as const
 export type LeadStatus = typeof LEAD_STATUS[keyof typeof LEAD_STATUS]
 
@@ -31,7 +32,8 @@ export const QUOTE_STATUS = {
     DRAFT: 'DRAFT',
     SENT: 'SENT',
     SOLD: 'SOLD',
-    REJECTED: 'REJECTED'
+    REJECTED: 'REJECTED',
+    NOT_SOLD: 'NOT_SOLD'
 } as const
 export type QuoteStatus = typeof QUOTE_STATUS[keyof typeof QUOTE_STATUS]
 
