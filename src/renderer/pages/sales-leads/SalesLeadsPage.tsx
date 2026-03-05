@@ -4,10 +4,11 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
-import { Plus, Target, Save } from 'lucide-react'
+import { Plus, Target, Save, XCircle } from 'lucide-react'
 import PageShell from '../../components/layout/PageShell'
 import DataTable from '../../components/data/DataTable'
 import Modal from '../../components/ui/Modal'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import { useToastStore } from '../../stores/toast.store'
 import { IPC_CHANNELS } from '@shared/ipc-channels'
 import { formatDate } from '../../lib/formatters'
@@ -32,7 +33,8 @@ interface Client {
 const STATUS_BADGES: Record<string, string> = {
     IN_PROGRESS: 'badge-warning',
     SOLD: 'badge-success',
-    NOT_SOLD: 'badge-danger'
+    NOT_SOLD: 'badge-danger',
+    CLOSED: 'badge-neutral'
 }
 
 const columnHelper = createColumnHelper<SalesLead>()
@@ -42,6 +44,8 @@ export default function SalesLeadsPage() {
     const [loading, setLoading] = useState(true)
     const [formOpen, setFormOpen] = useState(false)
     const [detailLead, setDetailLead] = useState<SalesLead | null>(null)
+    const [closeLead, setCloseLead] = useState<SalesLead | null>(null)
+    const [closing, setClosing] = useState(false)
     const { addToast } = useToastStore()
 
     const fetchLeads = useCallback(async () => {
@@ -135,6 +139,13 @@ export default function SalesLeadsPage() {
                 title={`Lead — ${detailLead?.name ?? ''}`}
                 description={`${detailLead?.leadNumber ?? ''} • Client: ${detailLead?.client.name ?? ''} ${detailLead?.client.surname ?? ''}`}
                 size="lg"
+                footer={
+                    detailLead?.status === 'IN_PROGRESS' ? (
+                        <button className="btn-ghost text-danger-500 hover:text-danger-400" onClick={() => setCloseLead(detailLead)}>
+                            <XCircle size={16} /> Close Lead
+                        </button>
+                    ) : null
+                }
             >
                 {detailLead && (
                     <div className="space-y-4">
@@ -154,7 +165,7 @@ export default function SalesLeadsPage() {
                                     {detailLead.quotes.map((q) => (
                                         <div key={q.id} className="flex items-center justify-between p-2 rounded-lg bg-surface-800/30">
                                             <span className="font-mono text-xs text-brand-400">{q.quoteNumber}</span>
-                                            <span className={STATUS_BADGES[q.status] || 'badge-neutral'}>{q.status}</span>
+                                            <span className={STATUS_BADGES[q.status] || 'badge-neutral'}>{q.status.replace('_', ' ')}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -163,6 +174,35 @@ export default function SalesLeadsPage() {
                     </div>
                 )}
             </Modal>
+
+            {/* ─── Close Lead Confirmation ─────────────────── */}
+            <ConfirmDialog
+                isOpen={!!closeLead}
+                onClose={() => setCloseLead(null)}
+                onConfirm={async () => {
+                    if (!closeLead) return
+                    setClosing(true)
+                    try {
+                        const res = await window.api.invoke(IPC_CHANNELS.LEAD_UPDATE_STATUS, closeLead.id, 'CLOSED')
+                        if (res.success) {
+                            addToast({ type: 'success', title: 'Lead Closed', message: `${closeLead.leadNumber} has been closed. All associated quotes marked as NOT SOLD.` })
+                            fetchLeads()
+                            setDetailLead(null)
+                        } else {
+                            addToast({ type: 'error', title: 'Failed', message: res.error })
+                        }
+                    } catch {
+                        addToast({ type: 'error', title: 'Failed' })
+                    } finally {
+                        setClosing(false)
+                        setCloseLead(null)
+                    }
+                }}
+                loading={closing}
+                title="Close Lead"
+                message={`Are you sure you want to close lead ${closeLead?.leadNumber ?? ''}?\n\nAll associated quotes in DRAFT or SENT status will be immediately marked as NOT SOLD. This action cannot be undone.`}
+                confirmLabel="Close Lead"
+            />
         </PageShell>
     )
 }

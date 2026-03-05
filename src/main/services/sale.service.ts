@@ -161,6 +161,7 @@ export async function executeSale(input: SaleExecuteInput): Promise<SaleData> {
                 saleNumber,
                 quoteId: quote.id,
                 totalRevenue,
+                taxAmount: quote.taxAmount || 0,
                 totalCost,
                 profitAmount,
                 profitMargin,
@@ -183,6 +184,16 @@ export async function executeSale(input: SaleExecuteInput): Promise<SaleData> {
         await tx.quote.update({
             where: { id: quote.id },
             data: { status: 'SOLD' }
+        })
+
+        // Mark all OTHER quotes on the same lead as NOT_SOLD
+        await tx.quote.updateMany({
+            where: {
+                salesLeadId: quote.salesLeadId,
+                id: { not: quote.id },
+                status: { in: ['DRAFT', 'SENT'] }
+            },
+            data: { status: 'NOT_SOLD' }
         })
 
         await tx.salesLead.update({

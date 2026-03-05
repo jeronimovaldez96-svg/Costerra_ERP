@@ -87,6 +87,8 @@ export async function createQuote(input: QuoteCreateInput): Promise<QuoteData> {
             quoteNumber,
             salesLeadId: input.salesLeadId,
             notes: input.notes || '',
+            taxRate: input.taxRate || 0,
+            taxAmount: 0,
             status: 'DRAFT'
         },
         include: {
@@ -107,6 +109,22 @@ export async function updateQuote(id: number, data: { notes?: string; status?: s
     const updateData: Record<string, unknown> = {}
     if (data.notes !== undefined) updateData.notes = data.notes
     if (data.status !== undefined) updateData.status = data.status
+
+    if ('taxRate' in data || 'taxAmount' in data || 'recalculateTax' in data) {
+        // Need to query line items to recalculate tax
+        const currentQuote = await prisma.quote.findUnique({
+            where: { id },
+            include: { lineItems: true }
+        })
+
+        const rate = ('taxRate' in data) ? (data as any).taxRate : currentQuote?.taxRate || 0
+        if ('taxRate' in data) updateData.taxRate = rate
+
+        if (currentQuote && currentQuote.lineItems) {
+            const subtotal = currentQuote.lineItems.reduce((sum, item) => sum + item.lineTotal, 0)
+            updateData.taxAmount = Math.round(subtotal * (rate / 100) * 100) / 100
+        }
+    }
 
     const quote = await prisma.quote.update({
         where: { id },
@@ -152,6 +170,17 @@ export async function addLineItem(input: QuoteLineItemInput): Promise<QuoteLineI
         include: { product: true }
     })
 
+    // Recalculate Quote Tax Amount
+    if (quote.taxRate > 0) {
+        const allItems = await prisma.quoteLineItem.findMany({ where: { quoteId: quote.id } })
+        const subtotal = allItems.reduce((sum, item) => sum + item.lineTotal, 0)
+        const newTaxAmount = Math.round(subtotal * (quote.taxRate / 100) * 100) / 100
+        await prisma.quote.update({
+            where: { id: quote.id },
+            data: { taxAmount: newTaxAmount }
+        })
+    }
+
     return lineItem as unknown as QuoteLineItemData
 }
 
@@ -167,4 +196,15 @@ export async function removeLineItem(lineItemId: number): Promise<void> {
     if (item.quote.status !== 'DRAFT') throw new Error('Cannot modify a quote that is not in DRAFT status')
 
     await prisma.quoteLineItem.delete({ where: { id: lineItemId } })
+
+    // Recalculate Quote Tax Amount
+    if (item.quote.taxRate > 0) {
+        const allItems = await prisma.quoteLineItem.findMany({ where: { quoteId: item.quoteId } })
+        const subtotal = allItems.reduce((sum, li) => sum + li.lineTotal, 0)
+        const newTaxAmount = Math.round(subtotal * (item.quote.taxRate / 100) * 100) / 100
+        await prisma.quote.update({
+            where: { id: item.quoteId },
+            data: { taxAmount: newTaxAmount }
+        })
+    }
 }

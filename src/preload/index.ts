@@ -21,6 +21,13 @@ const api = {
     },
 
     /**
+     * Send event to Main process without waiting for a response.
+     */
+    send: (channel: string, ...args: unknown[]): void => {
+        ipcRenderer.send(channel, ...args)
+    },
+
+    /**
      * Listen for events pushed from Main to Renderer.
      * Used for backup progress, async notifications, etc.
      */

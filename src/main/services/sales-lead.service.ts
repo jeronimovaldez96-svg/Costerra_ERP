@@ -96,6 +96,17 @@ export async function updateLeadStatus(id: number, newStatus: LeadStatus): Promi
     const lead = await prisma.salesLead.findUnique({ where: { id } })
     if (!lead) throw new Error(`Sales Lead with ID ${id} not found`)
 
+    // When closing a lead, cascade all non-final quotes to NOT_SOLD
+    if (newStatus === 'CLOSED') {
+        await prisma.quote.updateMany({
+            where: {
+                salesLeadId: id,
+                status: { in: ['DRAFT', 'SENT'] }
+            },
+            data: { status: 'NOT_SOLD' }
+        })
+    }
+
     const updated = await prisma.salesLead.update({
         where: { id },
         data: { status: newStatus },

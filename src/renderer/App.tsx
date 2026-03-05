@@ -17,6 +17,7 @@ import InventoryPage from './pages/inventory/InventoryPage'
 import ClientsPage from './pages/clients/ClientsPage'
 import SalesLeadsPage from './pages/sales-leads/SalesLeadsPage'
 import QuotesPage from './pages/quotes/QuotesPage'
+import QuotePrintTemplate from './pages/quotes/QuotePrintTemplate'
 import SalesPage from './pages/sales/SalesPage'
 import SettingsPage from './pages/settings/SettingsPage'
 
@@ -43,6 +44,7 @@ export default function App() {
                                 <Route path="/clients/*" element={<ClientsPage />} />
                                 <Route path="/sales-leads/*" element={<SalesLeadsPage />} />
                                 <Route path="/quotes/*" element={<QuotesPage />} />
+                                <Route path="/print/quote/:id" element={<QuotePrintTemplate />} />
                                 <Route path="/sales/*" element={<SalesPage />} />
                                 <Route path="/settings" element={<SettingsPage />} />
                             </Routes>
