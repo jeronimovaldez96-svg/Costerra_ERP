@@ -70,7 +70,13 @@ export const IPC_CHANNELS = {
     // ─── System ────────────────────────────────────────
     EXPORT_XLSX: 'system:export-xlsx',
     GET_APP_PATH: 'system:get-app-path',
-    DATABASE_RESET: 'system:database-reset'
+    DATABASE_RESET: 'system:database-reset',
+
+    // ─── App Updates ──────────────────────────────────
+    UPDATE_CHECK: 'update:check',
+    UPDATE_DOWNLOAD: 'update:download',
+    UPDATE_INSTALL: 'update:install',
+    UPDATE_STATUS: 'update:status'
 } as const
 
 export type IpcChannel = typeof IPC_CHANNELS[keyof typeof IPC_CHANNELS]
