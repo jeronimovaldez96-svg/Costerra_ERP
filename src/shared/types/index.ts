@@ -88,6 +88,7 @@ export interface SupplierData {
     contactName: string
     phone: string
     email: string
+    notes: string
     createdAt: string
 }
 
@@ -96,6 +97,7 @@ export interface SupplierCreateInput {
     contactName?: string
     phone?: string
     email?: string
+    notes?: string
 }
 
 export interface SupplierUpdateInput {
@@ -104,6 +106,16 @@ export interface SupplierUpdateInput {
     contactName?: string
     phone?: string
     email?: string
+    notes?: string
+}
+
+export interface SupplierHistoryEntry {
+    id: number
+    supplierId: number
+    fieldName: string
+    oldValue: string
+    newValue: string
+    changedAt: string
 }
 
 // ─── Purchase Order ──────────────────────────────────

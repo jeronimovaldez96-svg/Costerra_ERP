@@ -43,4 +43,13 @@ export function registerSupplierHandlers(): void {
             return { success: false, error: (error as Error).message }
         }
     })
+
+    ipcMain.handle(IPC_CHANNELS.SUPPLIER_HISTORY, async (_event, supplierId: number): Promise<IpcResponse> => {
+        try {
+            const history = await supplierService.getSupplierHistory(supplierId)
+            return { success: true, data: history }
+        } catch (error) {
+            return { success: false, error: (error as Error).message }
+        }
+    })
 }
