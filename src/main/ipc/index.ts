@@ -15,6 +15,7 @@ import { registerSaleHandlers } from './sale.ipc'
 import { registerAnalyticsHandlers } from './analytics.ipc'
 import { registerBackupHandlers } from './backup.ipc'
 import { registerSystemHandlers } from './system.ipc'
+import { registerUpdaterHandlers } from './updater.ipc'
 
 /**
  * Registers all IPC handlers for every module.
@@ -32,4 +33,5 @@ export function registerAllIpcHandlers(): void {
     registerAnalyticsHandlers()
     registerBackupHandlers()
     registerSystemHandlers()
+    registerUpdaterHandlers()
 }

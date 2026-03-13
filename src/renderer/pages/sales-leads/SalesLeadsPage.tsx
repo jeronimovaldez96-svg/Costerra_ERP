@@ -3,6 +3,8 @@
 // ────────────────────────────────────────────────────────
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import SearchableSelect from '../../components/ui/SearchableSelect'
+import type { SearchableOption } from '../../components/ui/SearchableSelect'
 import { createColumnHelper } from '@tanstack/react-table'
 import { Plus, Target, Save, XCircle } from 'lucide-react'
 import PageShell from '../../components/layout/PageShell'
@@ -228,6 +230,12 @@ function LeadForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: ()
         load()
     }, [addToast])
 
+    // ─── Searchable option list ─────────────────────────
+    const clientOptions = useMemo<SearchableOption[]>(
+        () => clients.map((c) => ({ value: c.id, label: `${c.clientNumber} — ${c.name} ${c.surname}` })),
+        [clients]
+    )
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!clientId) { addToast({ type: 'warning', title: 'Select a client' }); return }
@@ -253,10 +261,12 @@ function LeadForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: ()
         <form onSubmit={handleSubmit} className="space-y-5">
             <div>
                 <label className="block text-xs font-medium text-surface-400 mb-1.5">Client *</label>
-                <select value={clientId} onChange={(e) => setClientId(Number(e.target.value))} className="input-base">
-                    <option value={0}>Select a client...</option>
-                    {clients.map((c) => <option key={c.id} value={c.id}>{c.clientNumber} — {c.name} {c.surname}</option>)}
-                </select>
+                <SearchableSelect
+                    options={clientOptions}
+                    value={clientId}
+                    onChange={setClientId}
+                    placeholder="Search clients..."
+                />
             </div>
             <div>
                 <label className="block text-xs font-medium text-surface-400 mb-1.5">Lead Name *</label>

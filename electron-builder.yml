@@ -1,0 +1,38 @@
+# ────────────────────────────────────────────────────────
+# Costerra ERP — Electron Builder Configuration
+# Packages the Electron app as a macOS .dmg with
+# auto-update support via GitHub Releases.
+# ────────────────────────────────────────────────────────
+
+appId: com.costerra.erp
+productName: Costerra ERP
+
+directories:
+  output: dist
+  buildResources: build
+
+mac:
+  target: dmg
+  category: public.app-category.business
+  identity: null  # Unsigned builds — testers bypass Gatekeeper via right-click → Open
+
+dmg:
+  title: Costerra ERP
+
+publish:
+  provider: github
+  owner: jeronimovaldez96-svg
+  repo: Costerra_ERP
+
+# Include compiled output, dependencies, and Prisma migration files
+files:
+  - out/**/*
+  - node_modules/**/*
+  - package.json
+
+# Bundle Prisma migrations + schema as extraResources so they survive asar packaging
+extraResources:
+  - from: prisma/migrations
+    to: prisma/migrations
+  - from: prisma/schema.prisma
+    to: prisma/schema.prisma

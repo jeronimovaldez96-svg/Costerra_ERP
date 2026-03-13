@@ -57,6 +57,27 @@ export async function initDatabase(forceClean = false): Promise<void> {
     const dbPath = getDatabasePath()
     const dbIsEmpty = !existsSync(dbPath) || statSync(dbPath).size === 0
 
+    // Always run migrate deploy on startup to apply any new migrations
+    // from app updates. This is a safe no-op if the DB is already current.
+    // Must run BEFORE the isEmpty bootstrap and AFTER ensuring the DB path exists.
+    if (!dbIsEmpty) {
+        try {
+            const prismaDir = join(app.getAppPath(), 'prisma')
+            const schemaPath = join(prismaDir, 'schema.prisma')
+            process.env.DATABASE_URL = `file:${dbPath}`
+            execSync(
+                `npx prisma migrate deploy --schema="${schemaPath}"`,
+                {
+                    cwd: app.getAppPath(),
+                    env: { ...process.env, DATABASE_URL: `file:${dbPath}` },
+                    stdio: 'pipe'
+                }
+            )
+        } catch (err) {
+            console.error('[Costerra] Post-update migration failed:', err)
+        }
+    }
+
     if (dbIsEmpty) {
         // On reset (forceClean), always deploy a clean schema — no seed data.
         // On normal startup, try dev.db first for developer convenience.

@@ -9,6 +9,7 @@ import { join } from 'path'
 import { existsSync, mkdirSync } from 'fs'
 import { initDatabase, disconnectDatabase } from './database/prisma-client'
 import { registerAllIpcHandlers } from './ipc'
+import { initUpdater } from './services/updater.service'
 import { APP_CONFIG } from '../shared/constants'
 
 /** Ensure required data directories exist inside userData */
@@ -77,7 +78,10 @@ app.whenReady().then(async () => {
     registerAllIpcHandlers()
 
     // 4. Create the main window
-    createMainWindow()
+    const mainWindow = createMainWindow()
+
+    // 5. Initialise the auto-updater with the window reference
+    initUpdater(mainWindow)
 
     // macOS: recreate window when dock icon is clicked
     app.on('activate', () => {

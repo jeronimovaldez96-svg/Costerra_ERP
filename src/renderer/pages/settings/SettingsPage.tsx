@@ -1,10 +1,11 @@
 // ────────────────────────────────────────────────────────
 // Costerra ERP — Settings Page (Full Implementation)
-// Backup, Restore, Appearance, and system administration.
+// Backup, Restore, Appearance, Software Updates, and
+// system administration.
 // ────────────────────────────────────────────────────────
 
-import { useEffect, useState, useCallback } from 'react'
-import { HardDrive, Upload, Download, Shield, Clock, Sun, Moon, Trash2, AlertTriangle } from 'lucide-react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { HardDrive, Upload, Download, Shield, Clock, Sun, Moon, Trash2, AlertTriangle, RefreshCw, CheckCircle, ArrowDownCircle, RotateCw } from 'lucide-react'
 import { motion } from 'framer-motion'
 import PageShell from '../../components/layout/PageShell'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
@@ -21,6 +22,20 @@ interface BackupLog {
     createdAt: string
 }
 
+// ─── Update Status Types ─────────────────────────────
+type UpdateState = 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error'
+
+interface UpdateInfo {
+    state: UpdateState
+    version?: string
+    releaseDate?: string
+    percent?: number
+    bytesPerSecond?: number
+    transferred?: number
+    total?: number
+    message?: string
+}
+
 export default function SettingsPage() {
     const [backups, setBackups] = useState<BackupLog[]>([])
     const [loading, setLoading] = useState(true)
@@ -32,20 +47,59 @@ export default function SettingsPage() {
     const { addToast } = useToastStore()
     const { theme, toggleTheme } = useThemeStore()
 
+    // ─── Update State ────────────────────────────────────
+    const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({ state: 'idle' })
+    const listenerRegistered = useRef(false)
+
+    useEffect(() => {
+        if (listenerRegistered.current) return
+        listenerRegistered.current = true
+
+        const handleStatus = (status: UpdateInfo) => {
+            setUpdateInfo(status)
+        }
+        window.api.on(IPC_CHANNELS.UPDATE_STATUS, handleStatus as (...args: unknown[]) => void)
+
+        return () => {
+            window.api.off(IPC_CHANNELS.UPDATE_STATUS, handleStatus as (...args: unknown[]) => void)
+        }
+    }, [])
+
+    const handleCheckForUpdates = async () => {
+        setUpdateInfo({ state: 'checking' })
+        try {
+            await window.api.invoke(IPC_CHANNELS.UPDATE_CHECK)
+        } catch {
+            setUpdateInfo({ state: 'error', message: 'Failed to check for updates.' })
+        }
+    }
+
+    const handleDownloadUpdate = async () => {
+        try {
+            await window.api.invoke(IPC_CHANNELS.UPDATE_DOWNLOAD)
+        } catch {
+            setUpdateInfo({ state: 'error', message: 'Failed to download update.' })
+        }
+    }
+
+    const handleInstallUpdate = async () => {
+        try {
+            await window.api.invoke(IPC_CHANNELS.UPDATE_INSTALL)
+        } catch {
+            addToast({ type: 'error', title: 'Install Failed' })
+        }
+    }
+
     const isLightMode = theme === 'light'
 
     /**
      * Triggers the smooth theme transition class on <html>,
      * toggles the theme, then removes the class after animation completes.
-     * This prevents the transition styles from affecting initial page loads
-     * while still providing a polished toggle experience.
      */
     const handleToggleTheme = () => {
         const root = document.documentElement
         root.classList.add('theme-transition')
         toggleTheme()
-        // Remove the transition class after the animation completes
-        // to avoid interfering with other transitions
         setTimeout(() => root.classList.remove('theme-transition'), 350)
     }
 
@@ -119,7 +173,6 @@ export default function SettingsPage() {
                     message: 'Database and assets have been restored. The application will reload.',
                     duration: 6000
                 })
-                // Reload after a brief delay to let the toast show
                 setTimeout(() => window.location.reload(), 3000)
             } else {
                 addToast({ type: 'error', title: 'Restore Failed', message: res.error })
@@ -129,6 +182,103 @@ export default function SettingsPage() {
         } finally {
             setRestoring(false)
             setRestoreConfirm(false)
+        }
+    }
+
+    // ─── Update card rendering helpers ────────────────
+    const renderUpdateAction = () => {
+        switch (updateInfo.state) {
+            case 'idle':
+                return (
+                    <button className="btn-primary w-full" onClick={handleCheckForUpdates}>
+                        <RefreshCw size={16} /> Check for Updates
+                    </button>
+                )
+            case 'checking':
+                return (
+                    <button className="btn-primary w-full" disabled>
+                        <RefreshCw size={16} className="animate-spin" /> Checking...
+                    </button>
+                )
+            case 'available':
+                return (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-brand-500/10 border border-brand-500/20">
+                            <ArrowDownCircle size={16} className="text-brand-400" />
+                            <span className="text-sm text-brand-300">
+                                Version <span className="font-semibold">{updateInfo.version}</span> is available
+                            </span>
+                        </div>
+                        <button className="btn-primary w-full" onClick={handleDownloadUpdate}>
+                            <Download size={16} /> Download Update
+                        </button>
+                    </div>
+                )
+            case 'not-available':
+                return (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-success-500/10 border border-success-500/20">
+                            <CheckCircle size={16} className="text-success-500" />
+                            <span className="text-sm text-success-400">You&apos;re running the latest version</span>
+                        </div>
+                        <button className="btn-ghost w-full" onClick={handleCheckForUpdates}>
+                            <RefreshCw size={16} /> Check Again
+                        </button>
+                    </div>
+                )
+            case 'downloading':
+                return (
+                    <div className="space-y-3">
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between text-xs text-surface-400">
+                                <span>Downloading update...</span>
+                                <span>{updateInfo.percent ?? 0}%</span>
+                            </div>
+                            <div className="w-full h-2 rounded-full bg-surface-800/60 overflow-hidden">
+                                <motion.div
+                                    className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-400"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${updateInfo.percent ?? 0}%` }}
+                                    transition={{ duration: 0.3 }}
+                                />
+                            </div>
+                            {updateInfo.transferred !== undefined && updateInfo.total !== undefined && (
+                                <p className="text-xs text-surface-500 text-center">
+                                    {formatFileSize(updateInfo.transferred)} / {formatFileSize(updateInfo.total)}
+                                </p>
+                            )}
+                        </div>
+                        <button className="btn-ghost w-full" disabled>
+                            <Download size={16} className="animate-pulse" /> Downloading...
+                        </button>
+                    </div>
+                )
+            case 'downloaded':
+                return (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-success-500/10 border border-success-500/20">
+                            <CheckCircle size={16} className="text-success-500" />
+                            <span className="text-sm text-success-400">
+                                Version <span className="font-semibold">{updateInfo.version}</span> is ready to install
+                            </span>
+                        </div>
+                        <button className="btn-primary w-full" onClick={handleInstallUpdate}>
+                            <RotateCw size={16} /> Restart & Update
+                        </button>
+                    </div>
+                )
+            case 'error':
+                return (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-danger-500/10 border border-danger-500/20">
+                            <AlertTriangle size={16} className="text-danger-500" />
+                            <span className="text-sm text-danger-400">{updateInfo.message || 'Update failed'}</span>
+                        </div>
+                        <button className="btn-ghost w-full" onClick={handleCheckForUpdates}>
+                            <RefreshCw size={16} /> Try Again
+                        </button>
+                    </div>
+                )
         }
     }
 
@@ -183,6 +333,26 @@ export default function SettingsPage() {
                         </motion.span>
                     </button>
                 </div>
+            </div>
+
+            {/* ─── Software Updates Card ──────────────────── */}
+            <div className="glass-card p-6 mb-4">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2.5 rounded-lg bg-brand-500/10 text-brand-400">
+                        <ArrowDownCircle size={20} />
+                    </div>
+                    <div>
+                        <h3 className="text-base font-medium text-surface-100">Software Updates</h3>
+                        <p className="text-sm text-surface-500">
+                            Check for and install the latest version of Costerra ERP
+                        </p>
+                    </div>
+                </div>
+                <p className="text-sm text-surface-400 mb-4">
+                    Updates are downloaded from GitHub and installed automatically.
+                    Your data will be preserved — only the application code is updated.
+                </p>
+                {renderUpdateAction()}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
