@@ -63,10 +63,26 @@ model Supplier {
   contactName String   @default("")
   phone       String   @default("")
   email       String   @default("")
+  notes       String   @default("")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  history        SupplierHistory[]
   purchaseOrders PurchaseOrder[]
+}
+
+/// Append-only audit log — tracks every field-level change on a Supplier
+model SupplierHistory {
+  id         Int      @id @default(autoincrement())
+  supplierId Int
+  fieldName  String
+  oldValue   String
+  newValue   String
+  changedAt  DateTime @default(now())
+
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([supplierId])
 }
 
 /// State machine: DRAFT → IN_TRANSIT → DELIVERED

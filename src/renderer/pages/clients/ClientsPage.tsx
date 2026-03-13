@@ -1,14 +1,16 @@
 // ────────────────────────────────────────────────────────
 // Costerra ERP — Clients Page (Full Implementation)
-// DataTable listing with create/edit modal and client hub.
+// DataTable listing with create/edit modal, client hub,
+// and change history panel.
 // ────────────────────────────────────────────────────────
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
-import { Plus, Users, Save } from 'lucide-react'
+import { Plus, Users, Save, History } from 'lucide-react'
 import PageShell from '../../components/layout/PageShell'
 import DataTable from '../../components/data/DataTable'
 import Modal from '../../components/ui/Modal'
+import ClientHistoryPanel from './ClientHistoryPanel'
 import { useToastStore } from '../../stores/toast.store'
 import { IPC_CHANNELS } from '@shared/ipc-channels'
 import { formatDate } from '../../lib/formatters'
@@ -33,6 +35,7 @@ export default function ClientsPage() {
     const [loading, setLoading] = useState(true)
     const [formOpen, setFormOpen] = useState(false)
     const [editClient, setEditClient] = useState<Client | null>(null)
+    const [historyClient, setHistoryClient] = useState<Client | null>(null)
     const { addToast } = useToastStore()
 
     const fetchClients = useCallback(async () => {
@@ -69,6 +72,21 @@ export default function ClientsPage() {
             columnHelper.accessor('createdAt', {
                 header: 'Added',
                 cell: (info) => formatDate(info.getValue())
+            }),
+            columnHelper.display({
+                id: 'actions',
+                header: '',
+                cell: ({ row }) => (
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            onClick={() => setHistoryClient(row.original)}
+                            className="btn-ghost p-1.5"
+                            title="View History"
+                        >
+                            <History size={14} />
+                        </button>
+                    </div>
+                )
             })
         ],
         []
@@ -108,6 +126,17 @@ export default function ClientsPage() {
                     onSuccess={() => { setFormOpen(false); setEditClient(null); fetchClients() }}
                     onCancel={() => { setFormOpen(false); setEditClient(null) }}
                 />
+            </Modal>
+
+            {/* ─── History Panel ─────────────────────────────── */}
+            <Modal
+                isOpen={!!historyClient}
+                onClose={() => setHistoryClient(null)}
+                title={`History — ${historyClient?.name ?? ''} ${historyClient?.surname ?? ''}`}
+                description={`Change log for ${historyClient?.clientNumber ?? ''}`}
+                size="lg"
+            >
+                {historyClient && <ClientHistoryPanel clientId={historyClient.id} />}
             </Modal>
         </PageShell>
     )

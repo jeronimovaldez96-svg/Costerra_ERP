@@ -3,11 +3,13 @@
 // Multi-step: select supplier, add line items, submit.
 // ────────────────────────────────────────────────────────
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Plus, Trash2, Save } from 'lucide-react'
 import { useToastStore } from '../../stores/toast.store'
 import { IPC_CHANNELS } from '@shared/ipc-channels'
 import { formatCurrency } from '../../lib/formatters'
+import SearchableSelect from '../../components/ui/SearchableSelect'
+import type { SearchableOption } from '../../components/ui/SearchableSelect'
 
 interface Supplier {
     id: number
@@ -66,6 +68,17 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: PurchaseOrder
         }
         load()
     }, [addToast])
+
+    // ─── Searchable option lists ────────────────────────
+    const supplierOptions = useMemo<SearchableOption[]>(
+        () => suppliers.map((s) => ({ value: s.id, label: s.name })),
+        [suppliers]
+    )
+
+    const productOptions = useMemo<SearchableOption[]>(
+        () => products.map((p) => ({ value: p.id, label: `${p.skuNumber} — ${p.name}` })),
+        [products]
+    )
 
     // When product selection changes, pre-fill cost
     useEffect(() => {
@@ -151,16 +164,12 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: PurchaseOrder
             {/* ─── Supplier Selection ───────────────────────── */}
             <div>
                 <label className="block text-xs font-medium text-surface-400 mb-1.5">Supplier *</label>
-                <select
+                <SearchableSelect
+                    options={supplierOptions}
                     value={supplierId}
-                    onChange={(e) => setSupplierId(Number(e.target.value))}
-                    className="input-base"
-                >
-                    <option value={0}>Select a supplier...</option>
-                    {suppliers.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                </select>
+                    onChange={setSupplierId}
+                    placeholder="Search suppliers..."
+                />
             </div>
 
             <div>
@@ -180,16 +189,12 @@ export default function PurchaseOrderForm({ onSuccess, onCancel }: PurchaseOrder
                 <div className="grid grid-cols-12 gap-3 items-end">
                     <div className="col-span-5">
                         <label className="block text-xs text-surface-500 mb-1">Product</label>
-                        <select
+                        <SearchableSelect
+                            options={productOptions}
                             value={selectedProductId}
-                            onChange={(e) => setSelectedProductId(Number(e.target.value))}
-                            className="input-base text-sm"
-                        >
-                            <option value={0}>Select product...</option>
-                            {products.map((p) => (
-                                <option key={p.id} value={p.id}>{p.skuNumber} — {p.name}</option>
-                            ))}
-                        </select>
+                            onChange={setSelectedProductId}
+                            placeholder="Search products..."
+                        />
                     </div>
                     <div className="col-span-2">
                         <label className="block text-xs text-surface-500 mb-1">Quantity</label>

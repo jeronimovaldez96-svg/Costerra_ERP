@@ -1,18 +1,19 @@
 // ────────────────────────────────────────────────────────
 // Costerra ERP — Suppliers Page (Full Implementation)
-// DataTable listing with create/edit modal.
+// DataTable listing with create/edit modal, notes field,
+// and change history panel.
 // ────────────────────────────────────────────────────────
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
-import { Plus, Truck, Pencil } from 'lucide-react'
+import { Plus, Truck, Save, History } from 'lucide-react'
 import PageShell from '../../components/layout/PageShell'
 import DataTable from '../../components/data/DataTable'
 import Modal from '../../components/ui/Modal'
+import SupplierHistoryPanel from './SupplierHistoryPanel'
 import { useToastStore } from '../../stores/toast.store'
 import { IPC_CHANNELS } from '@shared/ipc-channels'
 import { formatDate } from '../../lib/formatters'
-import { Save } from 'lucide-react'
 
 interface Supplier {
     id: number
@@ -20,6 +21,7 @@ interface Supplier {
     contactName: string
     phone: string
     email: string
+    notes: string
     createdAt: string
 }
 
@@ -30,6 +32,7 @@ export default function SuppliersPage() {
     const [loading, setLoading] = useState(true)
     const [formOpen, setFormOpen] = useState(false)
     const [editSupplier, setEditSupplier] = useState<Supplier | null>(null)
+    const [historySupplier, setHistorySupplier] = useState<Supplier | null>(null)
     const { addToast } = useToastStore()
 
     const fetchSuppliers = useCallback(async () => {
@@ -63,6 +66,21 @@ export default function SuppliersPage() {
             columnHelper.accessor('createdAt', {
                 header: 'Added',
                 cell: (info) => formatDate(info.getValue())
+            }),
+            columnHelper.display({
+                id: 'actions',
+                header: '',
+                cell: ({ row }) => (
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            onClick={() => setHistorySupplier(row.original)}
+                            className="btn-ghost p-1.5"
+                            title="View History"
+                        >
+                            <History size={14} />
+                        </button>
+                    </div>
+                )
             })
         ],
         []
@@ -102,6 +120,17 @@ export default function SuppliersPage() {
                     onCancel={() => { setFormOpen(false); setEditSupplier(null) }}
                 />
             </Modal>
+
+            {/* ─── History Panel ─────────────────────────────── */}
+            <Modal
+                isOpen={!!historySupplier}
+                onClose={() => setHistorySupplier(null)}
+                title={`History — ${historySupplier?.name ?? ''}`}
+                description={`Change log for supplier`}
+                size="lg"
+            >
+                {historySupplier && <SupplierHistoryPanel supplierId={historySupplier.id} />}
+            </Modal>
         </PageShell>
     )
 }
@@ -124,7 +153,8 @@ function SupplierForm({
         name: supplier?.name ?? '',
         contactName: supplier?.contactName ?? '',
         phone: supplier?.phone ?? '',
-        email: supplier?.email ?? ''
+        email: supplier?.email ?? '',
+        notes: supplier?.notes ?? ''
     })
 
     const updateField = (field: string, value: string) =>
@@ -179,6 +209,10 @@ function SupplierForm({
                     <label className="block text-xs font-medium text-surface-400 mb-1.5">Email</label>
                     <input type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} className="input-base" placeholder="contact@example.com" />
                 </div>
+            </div>
+            <div>
+                <label className="block text-xs font-medium text-surface-400 mb-1.5">Notes</label>
+                <textarea value={form.notes} onChange={(e) => updateField('notes', e.target.value)} className="input-base min-h-[80px] resize-y" placeholder="Additional notes about this supplier..." />
             </div>
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-surface-800/50">
                 <button type="button" onClick={onCancel} className="btn-ghost">Cancel</button>

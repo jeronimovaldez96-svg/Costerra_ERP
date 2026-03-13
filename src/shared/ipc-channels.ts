@@ -17,6 +17,7 @@ export const IPC_CHANNELS = {
     SUPPLIER_GET: 'supplier:get',
     SUPPLIER_CREATE: 'supplier:create',
     SUPPLIER_UPDATE: 'supplier:update',
+    SUPPLIER_HISTORY: 'supplier:history',
 
     // ─── Purchase Order ────────────────────────────────
     PO_LIST: 'po:list',

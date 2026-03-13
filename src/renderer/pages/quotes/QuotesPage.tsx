@@ -5,6 +5,8 @@
 // ────────────────────────────────────────────────────────
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import SearchableSelect from '../../components/ui/SearchableSelect'
+import type { SearchableOption } from '../../components/ui/SearchableSelect'
 import { createColumnHelper } from '@tanstack/react-table'
 import { Plus, FileText, DollarSign, Trash2, Save, Printer } from 'lucide-react'
 import PageShell from '../../components/layout/PageShell'
@@ -361,6 +363,17 @@ function QuoteCreateForm({ onSuccess, onCancel }: { onSuccess: () => void; onCan
         }
     }, [selProductId, products])
 
+    // ─── Searchable option lists ────────────────────────
+    const leadOptions = useMemo<SearchableOption[]>(
+        () => leads.map((l) => ({ value: l.id, label: `${l.leadNumber} — ${l.name} (${l.client.name} ${l.client.surname})` })),
+        [leads]
+    )
+
+    const productOptions = useMemo<SearchableOption[]>(
+        () => products.map((p) => ({ value: p.id, label: `${p.skuNumber} — ${p.name}` })),
+        [products]
+    )
+
     const addItem = () => {
         if (!selProductId || qty <= 0) return
         const p = products.find((pr) => pr.id === selProductId)
@@ -407,10 +420,12 @@ function QuoteCreateForm({ onSuccess, onCancel }: { onSuccess: () => void; onCan
         <form onSubmit={handleSubmit} className="space-y-5">
             <div>
                 <label className="block text-xs font-medium text-surface-400 mb-1.5">Sales Lead *</label>
-                <select value={salesLeadId} onChange={(e) => setSalesLeadId(Number(e.target.value))} className="input-base">
-                    <option value={0}>Select a lead...</option>
-                    {leads.map((l) => <option key={l.id} value={l.id}>{l.leadNumber} — {l.name} ({l.client.name} {l.client.surname})</option>)}
-                </select>
+                <SearchableSelect
+                    options={leadOptions}
+                    value={salesLeadId}
+                    onChange={setSalesLeadId}
+                    placeholder="Search leads..."
+                />
             </div>
             <div>
                 <label className="block text-xs font-medium text-surface-400 mb-1.5">Notes</label>
@@ -423,10 +438,12 @@ function QuoteCreateForm({ onSuccess, onCancel }: { onSuccess: () => void; onCan
                 <div className="grid grid-cols-12 gap-3 items-end">
                     <div className="col-span-4">
                         <label className="block text-xs text-surface-500 mb-1">Product</label>
-                        <select value={selProductId} onChange={(e) => setSelProductId(Number(e.target.value))} className="input-base text-sm">
-                            <option value={0}>Select...</option>
-                            {products.map((p) => <option key={p.id} value={p.id}>{p.skuNumber} — {p.name}</option>)}
-                        </select>
+                        <SearchableSelect
+                            options={productOptions}
+                            value={selProductId}
+                            onChange={setSelProductId}
+                            placeholder="Search products..."
+                        />
                     </div>
                     <div className="col-span-2">
                         <label className="block text-xs text-surface-500 mb-1">Qty</label>
