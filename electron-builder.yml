@@ -19,6 +19,16 @@ mac:
 dmg:
   title: Costerra ERP
 
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+
 publish:
   provider: github
   owner: jeronimovaldez96-svg

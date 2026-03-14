@@ -22,7 +22,8 @@
     "test:watch": "vitest",
     "lint": "eslint . --ext .ts,.tsx",
     "dist": "electron-vite build && electron-builder --mac",
-    "release": "electron-vite build && electron-builder --mac --publish always"
+    "dist:win": "electron-vite build && electron-builder --win --x64",
+    "release": "electron-vite build && electron-builder --mac --win --publish always"
   },
   "dependencies": {
     "@prisma/client": "^6.5.0",
