@@ -13,9 +13,12 @@ directories:
 
 # ─── macOS ──────────────────────────────────────────────
 mac:
-  target: dmg
+  target:
+    - target: dmg
+      arch: [universal]
   category: public.app-category.business
-  identity: null  # Unsigned builds — testers bypass Gatekeeper via right-click → Open
+  identity: null  # Unsigned builds — testers must bypass Gatekeeper
+  hardenedRuntime: false
 
 dmg:
   title: Costerra ERP
