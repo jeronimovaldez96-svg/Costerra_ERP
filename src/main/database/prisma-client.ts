@@ -3,15 +3,18 @@
 // Ensures only one PrismaClient instance exists per
 // application lifecycle. Sets DATABASE_URL dynamically
 // based on Electron's userData path.
-// Deploys schema on first launch via `prisma migrate`.
+//
+// Database bootstrap uses raw SQL via better-sqlite3
+// instead of `npx prisma migrate deploy` so the packaged
+// app works on machines without Node.js installed.
 // ────────────────────────────────────────────────────────
 
 import { PrismaClient } from '@prisma/client'
 import { app } from 'electron'
 import { join } from 'path'
 import { existsSync, copyFileSync, statSync } from 'fs'
-import { execSync } from 'child_process'
 import { APP_CONFIG } from '../../shared/constants'
+import { bootstrapSchema } from './schema-bootstrap'
 
 let prisma: PrismaClient | null = null
 
@@ -43,46 +46,24 @@ export function getPrisma(): PrismaClient {
 }
 
 /**
- * Initialise the database connection and deploy schema if needed.
+ * Initialise the database connection and create schema if needed.
  * Called once during app startup in main/index.ts.
  *
  * Strategy:
  * 1. If the runtime DB doesn't exist or is empty (0 bytes),
  *    attempt to copy the dev migration seed from prisma/dev.db.
- * 2. If that's unavailable, run `prisma migrate deploy` to
- *    apply all migrations programmatically.
+ * 2. If that's unavailable, create the schema using raw SQL
+ *    via better-sqlite3 (no CLI tools required).
  * 3. Connect the PrismaClient.
  */
 export async function initDatabase(forceClean = false): Promise<void> {
     const dbPath = getDatabasePath()
     const dbIsEmpty = !existsSync(dbPath) || statSync(dbPath).size === 0
 
-    // Always run migrate deploy on startup to apply any new migrations
-    // from app updates. This is a safe no-op if the DB is already current.
-    // Must run BEFORE the isEmpty bootstrap and AFTER ensuring the DB path exists.
-    if (!dbIsEmpty) {
-        try {
-            const prismaDir = join(app.getAppPath(), 'prisma')
-            const schemaPath = join(prismaDir, 'schema.prisma')
-            process.env.DATABASE_URL = `file:${dbPath}`
-            execSync(
-                `npx prisma migrate deploy --schema="${schemaPath}"`,
-                {
-                    cwd: app.getAppPath(),
-                    env: { ...process.env, DATABASE_URL: `file:${dbPath}` },
-                    stdio: 'pipe'
-                }
-            )
-        } catch (err) {
-            console.error('[Costerra] Post-update migration failed:', err)
-        }
-    }
-
     if (dbIsEmpty) {
-        // On reset (forceClean), always deploy a clean schema — no seed data.
-        // On normal startup, try dev.db first for developer convenience.
         let bootstrapped = false
 
+        // In development, copy the dev.db for convenience
         if (!forceClean) {
             const devDbPath = join(app.getAppPath(), 'prisma', 'dev.db')
             if (existsSync(devDbPath) && statSync(devDbPath).size > 0) {
@@ -91,21 +72,14 @@ export async function initDatabase(forceClean = false): Promise<void> {
             }
         }
 
+        // In production (or if dev.db is missing), bootstrap via raw SQL.
+        // This is the critical path for packaged apps — no npx/prisma CLI.
         if (!bootstrapped) {
-            // Deploy empty schema via migrations (no seed data)
             try {
-                const prismaDir = join(app.getAppPath(), 'prisma')
-                process.env.DATABASE_URL = `file:${dbPath}`
-                execSync(
-                    `npx prisma migrate deploy --schema="${join(prismaDir, 'schema.prisma')}"`,
-                    {
-                        cwd: app.getAppPath(),
-                        env: { ...process.env, DATABASE_URL: `file:${dbPath}` },
-                        stdio: 'pipe'
-                    }
-                )
+                bootstrapSchema(dbPath)
+                console.log('[Costerra] Database schema bootstrapped via raw SQL')
             } catch (err) {
-                console.error('[Costerra] Failed to deploy database schema:', err)
+                console.error('[Costerra] Failed to bootstrap database schema:', err)
             }
         }
     }

@@ -1,7 +1,7 @@
 # ────────────────────────────────────────────────────────
 # Costerra ERP — Electron Builder Configuration
-# Packages the Electron app as a macOS .dmg with
-# auto-update support via GitHub Releases.
+# Packages the Electron app as a macOS .dmg / Windows .exe
+# with auto-update support via GitHub Releases.
 # ────────────────────────────────────────────────────────
 
 appId: com.costerra.erp
@@ -11,6 +11,7 @@ directories:
   output: dist
   buildResources: build
 
+# ─── macOS ──────────────────────────────────────────────
 mac:
   target: dmg
   category: public.app-category.business
@@ -19,6 +20,7 @@ mac:
 dmg:
   title: Costerra ERP
 
+# ─── Windows ────────────────────────────────────────────
 win:
   target:
     - target: nsis
@@ -29,20 +31,24 @@ nsis:
   allowToChangeInstallationDirectory: true
   deleteAppDataOnUninstall: false
 
+# ─── Auto-Update ────────────────────────────────────────
 publish:
   provider: github
   owner: jeronimovaldez96-svg
   repo: Costerra_ERP
 
-# Include compiled output, dependencies, and Prisma migration files
+# ─── Packaging ──────────────────────────────────────────
+# Include compiled output, dependencies, and package.json
 files:
   - out/**/*
   - node_modules/**/*
   - package.json
 
-# Bundle Prisma migrations + schema as extraResources so they survive asar packaging
-extraResources:
-  - from: prisma/migrations
-    to: prisma/migrations
-  - from: prisma/schema.prisma
-    to: prisma/schema.prisma
+# Unpack native modules from asar so Node.js can load them.
+# .node files and Prisma query engines cannot run from inside asar.
+asarUnpack:
+  - "node_modules/.prisma/**/*"
+  - "node_modules/@prisma/engines/**/*"
+  - "node_modules/@prisma/client/**/*"
+  - "node_modules/better-sqlite3/**/*"
+  - "node_modules/sharp/**/*"
