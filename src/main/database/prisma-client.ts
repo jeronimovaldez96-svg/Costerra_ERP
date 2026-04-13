@@ -8,7 +8,6 @@
 // instead of `npx prisma migrate deploy` so the packaged
 // app works on machines without Node.js installed.
 // ────────────────────────────────────────────────────────
-
 import { PrismaClient } from '@prisma/client'
 import { app } from 'electron'
 import { join } from 'path'

@@ -15,7 +15,7 @@ directories:
 mac:
   target:
     - target: dmg
-      arch: [universal]
+      arch: [arm64, x64]
   category: public.app-category.business
   identity: null  # Unsigned builds — testers must bypass Gatekeeper
   hardenedRuntime: false
@@ -41,17 +41,22 @@ publish:
   repo: Costerra_ERP
 
 # ─── Packaging ──────────────────────────────────────────
-# Include compiled output, dependencies, and package.json
 files:
   - out/**/*
   - node_modules/**/*
   - package.json
 
-# Unpack native modules from asar so Node.js can load them.
-# .node files and Prisma query engines cannot run from inside asar.
+# Unpack native modules from asar.
 asarUnpack:
-  - "node_modules/.prisma/**/*"
-  - "node_modules/@prisma/engines/**/*"
   - "node_modules/@prisma/client/**/*"
   - "node_modules/better-sqlite3/**/*"
   - "node_modules/sharp/**/*"
+  - "node_modules/@img/**/*"
+
+# Forcibly copy Prisma engines and dot-folders since electron-builder
+# ignores them during the standard node_modules dependency tree walk.
+extraResources:
+  - from: "node_modules/.prisma"
+    to: "app.asar.unpacked/node_modules/.prisma"
+  - from: "node_modules/@prisma/engines"
+    to: "app.asar.unpacked/node_modules/@prisma/engines"
